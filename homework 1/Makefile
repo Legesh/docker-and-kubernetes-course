@@ -1,8 +1,4 @@
-IMAGE_NAME=nginx
-CONTAINER_PREFIX=nginx-app
 BASE_PORT=8080
-
-.PHONY: run stop clean
 
 run:
 	@for i in $$(seq 1 10); do \
