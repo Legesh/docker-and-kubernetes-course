@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+  backend:
+    image: couple-games-backend:local
+    build:
+      context: ..
+      dockerfile: sdk-ops/Dockerfile-backend
+    ports:
+      - "8000:8080"
+    volumes:
+      - appdata:/appdata
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: couple-games
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    command: >
+      sh -c '
+      mkdir -p /appdata &&
+      count=$$(cat /appdata/visits.txt 2>/dev/null || echo 0) &&
+      count=$$((count + 1)) &&
+      echo $$count > /appdata/visits.txt &&
+      echo "App starts counter: $$count" &&
+      php artisan serve --host=0.0.0.0 --port=8080
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$ok = @file_get_contents(\"http://127.0.0.1:8080\"); exit($$ok === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    image: couple-games-client:local
+    build:
+      context: ..
+      dockerfile: sdk-ops/Dockerfile-client
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: couple-games
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  dbdata:
+    name: couple-games_dbdata
+  appdata:
+    name: couple-games_appdata
