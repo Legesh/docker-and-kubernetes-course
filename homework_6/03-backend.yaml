@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: couple-games
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+        - name: init-appdata-permissions
+          image: busybox:1.36
+          command: ["sh", "-c", "mkdir -p /appdata && chmod 777 /appdata"]
+          volumeMounts:
+            - name: appdata
+              mountPath: /appdata
+      containers:
+        - name: backend
+          image: legesh/sdk-game:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /appdata
+              count=$(cat /appdata/visits.txt 2>/dev/null || echo 0)
+              count=$((count + 1))
+              echo "$count" > /appdata/visits.txt
+              echo "App starts counter: $count"
+              php artisan serve --host=0.0.0.0 --port=8080
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: DB_CONNECTION
+              value: mysql
+            - name: DB_HOST
+              value: db
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: couple-games
+            - name: DB_USERNAME
+              value: root
+            - name: DB_PASSWORD
+              value: root
+          volumeMounts:
+            - name: appdata
+              mountPath: /appdata
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 10
+      volumes:
+        - name: appdata
+          persistentVolumeClaim:
+            claimName: appdata-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: couple-games
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
