@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: couple-games
+data:
+  APP_DISPLAY_NAME: "couple-games"
+  FEATURE_ROULETTE_ENABLED: "true"
+  RELEASE_CHANNEL: "stable"
