@@ -1,0 +1,18 @@
+{{- if .Values.appdata.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "couple-games.appdataPvcName" . }}
+  labels:
+    {{- include "couple-games.labels" . | nindent 4 }}
+    app.kubernetes.io/component: appdata
+spec:
+  accessModes:
+    - {{ .Values.appdata.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.appdata.persistence.size }}
+  {{- if .Values.appdata.persistence.storageClassName }}
+  storageClassName: {{ .Values.appdata.persistence.storageClassName | quote }}
+  {{- end }}
+{{- end }}

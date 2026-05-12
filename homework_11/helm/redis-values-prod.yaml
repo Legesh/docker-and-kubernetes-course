@@ -1,0 +1,9 @@
+# Production: enable auth and set password (use --set or External Secrets in real life)
+architecture: standalone
+auth:
+  enabled: true
+  password: "some-password"
+master:
+  persistence:
+    enabled: true
+    size: 2Gi

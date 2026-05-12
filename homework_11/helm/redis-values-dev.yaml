@@ -1,0 +1,8 @@
+# Dev: no auth for simpler APP_REDIS_URL (redis://host:6379)
+architecture: standalone
+auth:
+  enabled: false
+master:
+  persistence:
+    enabled: true
+    size: 512Mi

@@ -1,0 +1,97 @@
+nameOverride: ""
+fullnameOverride: ""
+
+global: {}
+
+mysql:
+  enabled: true
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  serviceName: db
+  replicas: 1
+  rootPassword: root
+  database: couple-games
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    storageClassName: ""
+
+redis:
+  host: ""
+  port: 6379
+  password: ""
+  bitnami:
+    releaseName: redis
+    primaryServiceSuffix: master
+
+appConfig:
+  APP_DISPLAY_NAME: couple-games
+  FEATURE_ROULETTE_ENABLED: "true"
+  RELEASE_CHANNEL: stable
+
+backend:
+  enabled: true
+  image:
+    repository: legesh/sdk-game
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  servicePort: 8080
+  containerPort: 8080
+  appEnv: production
+  appDebug: "false"
+  appStore: redis
+  busyboxImage: busybox:1.36
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 2
+      maxSurge: 3
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    failureThreshold: 2
+  livenessProbe:
+    initialDelaySeconds: 40
+    periodSeconds: 10
+    failureThreshold: 3
+  resources: {}
+
+client:
+  enabled: true
+  image:
+    repository: legesh/sdk-client
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  servicePort: 8080
+  containerPort: 8080
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  resources: {}
+
+appdata:
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    storageClassName: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  name: ""
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+  host: couple-games.127.0.0.1.sslip.io
+  paths:
+    apiPrefix: /api/?(.*)
+    spaFallback: /?(.*)
+  tls: []

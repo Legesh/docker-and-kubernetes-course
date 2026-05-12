@@ -1,0 +1,57 @@
+{{- if .Values.client.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  labels:
+    {{- include "couple-games.labels" . | nindent 4 }}
+    app.kubernetes.io/component: client
+spec:
+  replicas: {{ .Values.client.replicas }}
+  selector:
+    matchLabels:
+      {{- include "couple-games.clientSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "couple-games.clientSelectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: client
+          image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+          imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.client.containerPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.client.containerPort }}
+            initialDelaySeconds: {{ .Values.client.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.client.readinessProbe.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.client.containerPort }}
+            initialDelaySeconds: {{ .Values.client.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.client.livenessProbe.periodSeconds }}
+          {{- with .Values.client.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client
+  labels:
+    {{- include "couple-games.labels" . | nindent 4 }}
+    app.kubernetes.io/component: client
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "couple-games.clientSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.client.servicePort }}
+      targetPort: {{ .Values.client.containerPort }}
+{{- end }}

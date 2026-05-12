@@ -1,0 +1,25 @@
+# Production
+mysql:
+  persistence:
+    size: 10Gi
+
+backend:
+  replicas: 3
+  appEnv: production
+  appDebug: "false"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+
+client:
+  replicas: 2
+
+ingress:
+  host: couple-games-prod.127.0.0.1.sslip.io
+
+redis:
+  bitnami:
+    releaseName: redis
+  password: "change-me-in-real-deploy"

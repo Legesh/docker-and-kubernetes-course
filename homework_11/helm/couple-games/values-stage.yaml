@@ -1,0 +1,19 @@
+# Staging
+mysql:
+  persistence:
+    size: 5Gi
+
+backend:
+  replicas: 2
+  appEnv: staging
+  appDebug: "false"
+
+client:
+  replicas: 2
+
+ingress:
+  host: couple-games-stage.127.0.0.1.sslip.io
+
+redis:
+  bitnami:
+    releaseName: redis

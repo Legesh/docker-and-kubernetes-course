@@ -1,0 +1,6 @@
+# Shared defaults for Bitnami Redis (override per env file)
+architecture: standalone
+master:
+  persistence:
+    enabled: true
+    size: 1Gi

@@ -1,0 +1,19 @@
+# Development
+mysql:
+  persistence:
+    size: 2Gi
+
+backend:
+  replicas: 1
+  appEnv: local
+  appDebug: "true"
+
+client:
+  replicas: 1
+
+ingress:
+  host: couple-games-dev.127.0.0.1.sslip.io
+
+redis:
+  bitnami:
+    releaseName: redis

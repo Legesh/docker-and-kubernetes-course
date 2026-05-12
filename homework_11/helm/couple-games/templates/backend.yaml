@@ -1,0 +1,115 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    {{- include "couple-games.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  strategy:
+    {{- toYaml .Values.backend.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "couple-games.backendSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "couple-games.backendSelectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: init-appdata-permissions
+          image: {{ .Values.backend.busyboxImage | quote }}
+          command: ["sh", "-c", "mkdir -p /appdata && chmod 777 /appdata"]
+          volumeMounts:
+            - name: appdata
+              mountPath: /appdata
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /appdata
+              count=$(cat /appdata/visits.txt 2>/dev/null || echo 0)
+              count=$((count + 1))
+              echo "$count" > /appdata/visits.txt
+              echo "App starts counter: $count"
+              touch /tmp/ready
+              php artisan serve --host=0.0.0.0 --port=8080
+          ports:
+            - containerPort: {{ .Values.backend.containerPort }}
+          env:
+            - name: APP_ENV
+              value: {{ .Values.backend.appEnv | quote }}
+            - name: APP_DEBUG
+              value: {{ .Values.backend.appDebug | quote }}
+            - name: DB_CONNECTION
+              value: mysql
+            - name: DB_HOST
+              value: {{ .Values.mysql.serviceName | quote }}
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              value: {{ .Values.mysql.database | quote }}
+            - name: DB_USERNAME
+              value: root
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "couple-games.fullname" . }}-mysql
+                  key: mysql-root-password
+            - name: APP_STORE
+              value: {{ .Values.backend.appStore | quote }}
+            - name: APP_REDIS_URL
+              value: {{ include "couple-games.redisUrl" . | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "couple-games.configMapName" . }}
+          volumeMounts:
+            - name: appdata
+              mountPath: /appdata
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test -f /tmp/ready && php -r '$$ok = @file_get_contents("http://127.0.0.1:8080/"); if ($$ok === false) { exit(1); }'
+            initialDelaySeconds: {{ .Values.backend.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.backend.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.backend.containerPort }}
+            initialDelaySeconds: {{ .Values.backend.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.backend.livenessProbe.failureThreshold }}
+          {{- with .Values.backend.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: appdata
+          persistentVolumeClaim:
+            claimName: {{ include "couple-games.appdataPvcName" . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    {{- include "couple-games.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "couple-games.backendSelectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.backend.servicePort }}
+      targetPort: {{ .Values.backend.containerPort }}
+{{- end }}
