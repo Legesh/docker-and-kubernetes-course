@@ -1,0 +1,31 @@
+# Optional: same read-only role in couple-games-dev (where Dragonfly instance lives).
+# Apply in addition to rbac.yaml if db-viewer should list/describe dragonfly there.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: db-readonly
+  namespace: couple-games-dev
+rules:
+  - apiGroups:
+      - dragonflydb.io
+    resources:
+      - dragonflies
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: db-readonly-binding
+  namespace: couple-games-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: db-readonly
+subjects:
+  - kind: ServiceAccount
+    name: db-viewer
+    namespace: default

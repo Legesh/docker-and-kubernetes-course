@@ -1,0 +1,20 @@
+# Dragonfly instance (managed by Dragonfly Operator).
+# Apply after the operator is installed and CRDs are available.
+# Service for clients in the same namespace: http://dragonfly:6379 (Redis-compatible).
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: dragonfly
+  namespace: couple-games-dev
+  labels:
+    app.kubernetes.io/name: dragonfly
+    app.kubernetes.io/part-of: couple-games
+spec:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
